@@ -116,8 +116,9 @@ function listener_post_thumb_link_click(event) {
   event.preventDefault();
   event.stopPropagation();
 
-  let target = event.target;
-  let current = event.currentTarget;
+  const target = event.target;
+  const current = target.closest("a.file-thumb-href");
+
 
   const shrink = function(target, current, file_info, file_ext) {
     current.firstElementChild.style.display = null;
@@ -143,23 +144,26 @@ function listener_post_thumb_link_click(event) {
   };
 
   const expand = function(target, current, file_info, file_href, file_ext, file_data) {
+
     switch (file_ext) {
       case 'mp4':
       case 'webm':
-        target.style.display = 'none';
         
-        let source = document.createElement('source');
+        const source = document.createElement('source');
         source.src = file_href;
-        let video = document.createElement('video');
+        const video = document.createElement('video');
         video.setAttribute('onloadstart', 'this.volume=0.25');
         video.setAttribute('autoplay', 'true');
         video.setAttribute('controls', 'true');
         video.style.maxWidth = '85vw';
         video.style.height = 'auto';
         video.style.cursor = 'default';
+        video.style.minWidth = target.clientWidth + "px";
+        video.style.minHeight = target.clientHeight + "px";
         video.appendChild(source);
-
         current.appendChild(video);
+
+        target.style.display = 'none';
         break;
       case 'mp3':
       case 'ogg':
@@ -205,19 +209,21 @@ function listener_post_thumb_link_click(event) {
         current.appendChild(embed);
         break;
       default:
-        target.style.display = 'none';
-
-        let img = document.createElement('img');
+        const img = document.createElement('img');
         img.src = file_href;
+        img.style.minWidth = target.clientWidth + "px";
+        img.style.minHeight = target.clientHeight + "px";
         img.style.maxWidth = '85vw';
         img.style.height = 'auto';
         img.loading = 'lazy';
 
         current.appendChild(img);
+
+        target.style.display = 'none';
         break;
     }
 
-    let anchor = document.createElement('a');
+    const anchor = document.createElement('a');
     anchor.href = '';
     anchor.innerHTML = '[-]';
     anchor.classList.add('file-shrink-href')
@@ -232,14 +238,11 @@ function listener_post_thumb_link_click(event) {
     current.setAttribute('expanded', 'true');
   };
 
-  let file_info = current.parentElement.parentElement.getElementsByClassName('file-info');
-  file_info = file_info.length > 0 ? file_info[0] : null;
-  let file_data = current.parentElement.parentElement.getElementsByClassName('file-data');
-  file_data = file_data.length > 0 ? file_data[0].innerHTML : null;
-  file_data = file_data.length > 0 ? file_data : null;
+  const file_info = target.closest(".post-preview, .post-container").querySelector('.file-info');
+  const file_data = target.closest(".post-preview, .post-container").querySelector('.file-data')?.innerHTML;
   const file_href = current.href;
-  let file_ext = file_data == null ? file_href.split('.').pop().toLowerCase() : 'embed';
-  
+  const file_ext = !file_data ? file_href.split('.').pop().toLowerCase() : 'embed';
+
   if (current.getAttribute('expanded') !== 'true') {
     expand(target, current, file_info, file_href, file_ext, file_data);
   } else {
@@ -686,10 +689,12 @@ function init_post_thumb_links(target) {
     target = document;
   }
 
-  let post_thumb_links = document.getElementsByClassName('file-thumb-href');
-  Array.from(post_thumb_links).forEach(element => {
-    element.addEventListener('click', listener_post_thumb_link_click);
-  });
+  document.body.addEventListener("click", (e) => {
+    if (e.target.parentElement.classList.contains("file-thumb-href")) {
+      listener_post_thumb_link_click(e);
+      e.preventDefault();
+    }
+  })
 }
 
 /**
