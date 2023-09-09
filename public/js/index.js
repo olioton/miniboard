@@ -119,9 +119,7 @@ function listener_post_thumb_link_click(event) {
   const target = event.target;
   const current = target.closest("a.file-thumb-href");
 
-
   const shrink = function(target, current, file_info, file_ext) {
-    current.firstElementChild.style.display = null;
 
     switch (file_ext) {
       case 'mp3':
@@ -141,14 +139,43 @@ function listener_post_thumb_link_click(event) {
     }
 
     current.setAttribute('expanded', 'false');
+    current.firstElementChild.style.display = null;
   };
 
   const expand = function(target, current, file_info, file_href, file_ext, file_data) {
 
+    const getDimensions = function() {
+
+        const mediaWidth = current.closest(".file-thumb").dataset.width;
+        const mediaHeight = current.closest(".file-thumb").dataset.height;
+
+        if (!mediaHeight || !mediaHeight) return null;
+
+        const inPreview = !!target.closest(".post-preview");
+
+        const maxWidth = window.innerWidth * 0.75 - target.getBoundingClientRect().left;
+        const maxHeight = window.innerHeight - target.getBoundingClientRect().top;
+        
+        const scaleRate = Math.min(1, maxWidth / mediaWidth, maxHeight / mediaHeight);
+     
+        const height = (inPreview && mediaWidth && mediaHeight)
+          ? ((mediaHeight * scaleRate) + "px")
+          : "auto"
+        
+        const width = (inPreview && mediaWidth && mediaHeight)
+          ? ((mediaWidth * scaleRate) + "px")
+          : "auto"
+
+        return {
+          width: width,
+          height: height,
+        }
+    }
+
+    const dimensions = getDimensions();
     switch (file_ext) {
       case 'mp4':
       case 'webm':
-        
         const source = document.createElement('source');
         source.src = file_href;
         const video = document.createElement('video');
@@ -156,7 +183,10 @@ function listener_post_thumb_link_click(event) {
         video.setAttribute('autoplay', 'true');
         video.setAttribute('controls', 'true');
         video.style.maxWidth = '85vw';
-        video.style.height = 'auto';
+        if (dimensions) {
+          video.style.width = dimensions.width;
+          video.style.height = dimensions.height;
+        }
         video.style.cursor = 'default';
         video.style.minWidth = target.clientWidth + "px";
         video.style.minHeight = target.clientHeight + "px";
@@ -211,6 +241,10 @@ function listener_post_thumb_link_click(event) {
       default:
         const img = document.createElement('img');
         img.src = file_href;
+        if (dimensions) {
+          img.style.width = dimensions.width;
+          img.style.height = dimensions.height;
+        }
         img.style.minWidth = target.clientWidth + "px";
         img.style.minHeight = target.clientHeight + "px";
         img.style.maxWidth = '85vw';
@@ -411,6 +445,7 @@ function listener_post_reference_link_mouseenter(event) {
 function listener_post_reference_link_mouseleave(event) {
   event.preventDefault();
 
+  return;
   // update state
   state.mouse_over_post_ref_link = false;
 
@@ -569,6 +604,7 @@ function create_post_preview(target, board_id, parent_id, id, rect, content) {
   div.style.top = '0';
   div.style.right = 'auto';
   div.style.bottom = 'auto';
+  div.style.zIndex = document.querySelectorAll(".post-preview").length;
 
   // append post HTML content
   div.innerHTML = content;
@@ -723,7 +759,7 @@ function init_post_reference_links(target) {
   let post_ref_links = target.getElementsByClassName('reference');
   Array.from(post_ref_links).forEach(element => {
     element.addEventListener('mouseenter', listener_post_reference_link_mouseenter);
-    element.addEventListener('mouseleave', listener_post_reference_link_mouseleave);
+    //element.addEventListener('mouseleave', listener_post_reference_link_mouseleave);
   });
 }
 
